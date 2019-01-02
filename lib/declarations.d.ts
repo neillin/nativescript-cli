@@ -326,6 +326,11 @@ interface IDependencyData {
 	name: string;
 
 	/**
+	 * Version of the dependency.
+	 */
+	version: string;
+
+	/**
 	 * The full path where the package is installed.
 	 */
 	directory: string;
@@ -346,6 +351,11 @@ interface IDependencyData {
 	 * Dependencies of the current module.
 	 */
 	dependencies?: string[];
+
+	/**
+	 * Shows if package is deduped, so it should not be included when copying files to platforms dir.
+	 */
+	deduped?: boolean;
 }
 
 interface INpmsResult {

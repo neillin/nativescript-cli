@@ -583,7 +583,8 @@ export class AndroidProjectService extends projectServiceBaseLib.PlatformProject
 		const shouldUseNewRoutine = this.runtimeVersionIsGreaterThanOrEquals(projectData, "3.3.0");
 
 		if (dependencies) {
-			dependencies = this.filterUniqueDependencies(dependencies);
+			dependencies = dependencies.filter(d => !d.deduped);
+
 			if (shouldUseNewRoutine) {
 				this.provideDependenciesJson(projectData, dependencies);
 			} else {
@@ -605,18 +606,6 @@ export class AndroidProjectService extends projectServiceBaseLib.PlatformProject
 			const projectRoot = this.getPlatformData(projectData).projectRoot;
 			await this.cleanProject(projectRoot, projectData);
 		}
-	}
-
-	private filterUniqueDependencies(dependencies: IDependencyData[]): IDependencyData[] {
-		const depsDictionary = dependencies.reduce((dict, dep) => {
-			const collision = dict[dep.name];
-			// in case there are multiple dependencies to the same module, the one declared in the package.json takes precedence
-			if (!collision || collision.depth > dep.depth) {
-				dict[dep.name] = dep;
-			}
-			return dict;
-		}, <IDictionary<IDependencyData>>{});
-		return _.values(depsDictionary);
 	}
 
 	private provideDependenciesJson(projectData: IProjectData, dependencies: IDependencyData[]): void {
