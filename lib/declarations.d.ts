@@ -356,6 +356,11 @@ interface IDependencyData {
 	 * Shows if package is deduped, so it should not be included when copying files to platforms dir.
 	 */
 	deduped?: boolean;
+
+	/**
+	 * Shows warning for the current dependency.
+	 */
+	warning?: string;
 }
 
 interface INpmsResult {

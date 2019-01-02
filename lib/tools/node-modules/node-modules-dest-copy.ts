@@ -108,7 +108,7 @@ export class TnsModulesCopy {
 		)
 			.filter(dir => {
 				// remove folders that do not have package.json inside - they are not dependencies.
-				// such dir for example is .bin produced in node_modules
+				// such dir for example is .bin produced in node_modules.
 				const pathToDir = path.join(dependenciesFolder, dir);
 				return this.$fs.exists(path.join(pathToDir, constants.PACKAGE_JSON_FILE_NAME));
 			});

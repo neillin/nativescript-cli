@@ -52,7 +52,8 @@ export class PreparePlatformNativeService extends PreparePlatformService impleme
 				lastModifiedTime,
 				platform: config.platform,
 				projectData: config.projectData,
-				projectFilesConfig: config.projectFilesConfig
+				projectFilesConfig: config.projectFilesConfig,
+				productionDependencies: config.productionDependencies
 			};
 
 			// Process node_modules folder

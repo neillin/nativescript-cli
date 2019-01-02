@@ -58,7 +58,7 @@ export class NodeModulesDependenciesBuilder implements INodeModulesDependenciesB
 				if (!!alreadyAddedDependency) {
 					// TODO: These checks are valid only for NativeScript plugins with existing platforms dir.
 					// TODO: Consider cases when one of the versions of a plugin is a NativeScript plugin and another one is not.
-					const isNativeScriptPlugin = !!alreadyAddedDependency.nativescript
+					const isNativeScriptPlugin = !!alreadyAddedDependency.nativescript;
 					if (isNativeScriptPlugin) {
 						if (alreadyAddedDependency.version === resolvedDependency.version) {
 							let dedupedLocation = "";
@@ -67,21 +67,24 @@ export class NodeModulesDependenciesBuilder implements INodeModulesDependenciesB
 								alreadyAddedDependency.deduped = true;
 								dedupedLocation = alreadyAddedDependency.directory;
 								locationToBeUsed = resolvedDependency.directory;
+								alreadyAddedDependency.warning = `Will not add ${resolvedDependency.name} from location ${dedupedLocation} as it has already been added from ${locationToBeUsed}.
+It is not expected to have the same version of a dependency in different locations. Consider removing node_modules and package-lock.json (npm-shrinkwrap.json) and installing dependencies again.`;
 							} else {
 								resolvedDependency.deduped = true;
 								dedupedLocation = resolvedDependency.directory;
 								locationToBeUsed = alreadyAddedDependency.directory;
+								resolvedDependency.warning = `Will not add ${resolvedDependency.name} from location ${dedupedLocation} as it has already been added from ${locationToBeUsed}.
+It is not expected to have the same version of a dependency in different locations. Consider removing node_modules and package-lock.json (npm-shrinkwrap.json) and installing dependencies again.`;
 							}
 
-							console.log(`Will not add ${resolvedDependency.name} from location ${dedupedLocation} as it has already been added from ${locationToBeUsed}.
-It is not expected to have the same version of a dependency in different locations. Consider removing node_modules and package-lock.json (npm-shrinkwrap.json) and installing dependencies again.`);
+
 							resolvedDependencies.push(resolvedDependency);
 						} else {
 							throw new Error(`Unable to add dependency ${resolvedDependency.directory} as different version of the same dependency has been added from ${alreadyAddedDependency.directory}`);
 						}
 					} else if (alreadyAddedDependency.version === resolvedDependency.version) {
-						console.log(`Detected the same version of a package installed on different locations: ${alreadyAddedDependency.directory} and ${resolvedDependency.directory}
-It is not expected to have the same version of a dependency in different locations. Consider removing node_modules and package-lock.json (npm-shrinkwrap.json) and installing dependencies again.`);
+						resolvedDependency.warning = `Detected the same version of a package installed on different locations: ${alreadyAddedDependency.directory} and ${resolvedDependency.directory}
+It is not expected to have the same version of a dependency in different locations. Consider removing node_modules and package-lock.json (npm-shrinkwrap.json) and installing dependencies again.`;
 						resolvedDependencies.push(resolvedDependency);
 					}
 				} else {

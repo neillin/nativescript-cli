@@ -3,8 +3,7 @@ import { TnsModulesCopy, NpmPluginPrepare } from "./node-modules-dest-copy";
 
 export class NodeModulesBuilder implements INodeModulesBuilder {
 	constructor(private $fs: IFileSystem,
-		private $injector: IInjector,
-		private $nodeModulesDependenciesBuilder: INodeModulesDependenciesBuilder
+		private $injector: IInjector
 	) { }
 
 	public async prepareNodeModules(opts: INodeModulesBuilderData): Promise<void> {
@@ -21,7 +20,7 @@ export class NodeModulesBuilder implements INodeModulesBuilder {
 
 	private intialPrepareNodeModulesIfRequired(opts: INodeModulesBuilderData): IDependencyData[] {
 		const { nodeModulesData } = opts;
-		const productionDependencies = this.$nodeModulesDependenciesBuilder.getProductionDependencies(nodeModulesData.projectData.projectDir);
+		const productionDependencies = nodeModulesData.productionDependencies;
 
 		if (opts.copyNodeModules) {
 			this.initialPrepareNodeModules(opts, productionDependencies);

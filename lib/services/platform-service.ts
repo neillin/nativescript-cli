@@ -40,7 +40,8 @@ export class PlatformService extends EventEmitter implements IPlatformService {
 		private $analyticsService: IAnalyticsService,
 		private $terminalSpinnerService: ITerminalSpinnerService,
 		private $pacoteService: IPacoteService,
-		private $usbLiveSyncService: any
+		private $usbLiveSyncService: any,
+		private $nodeModulesDependenciesBuilder: INodeModulesDependenciesBuilder
 	) {
 		super();
 	}
@@ -243,9 +244,7 @@ export class PlatformService extends EventEmitter implements IPlatformService {
 				changesInfo,
 				platformInfo.filesToSync,
 				platformInfo.filesToRemove,
-				platformInfo.nativePrepare,
-				platformInfo.skipCopyAppResourcesFiles,
-				platformInfo.skipCopyTnsModules
+				platformInfo.nativePrepare
 			);
 			this.$projectChangesService.savePrepareInfo(platformInfo.platform, platformInfo.projectData);
 		} else {
@@ -313,14 +312,20 @@ export class PlatformService extends EventEmitter implements IPlatformService {
 		changesInfo?: IProjectChangesInfo,
 		filesToSync?: string[],
 		filesToRemove?: string[],
-		nativePrepare?: INativePrepare,
-		skipCopyAppResourcesFiles?: boolean,
-		skipCopyTnsModules?: boolean): Promise<void> {
+		nativePrepare?: INativePrepare): Promise<void> {
 
 		this.$logger.out("Preparing project...");
 
 		const platformData = this.$platformsData.getPlatformData(platform, projectData);
 		const projectFilesConfig = helpers.getProjectFilesConfig({ isReleaseBuild: appFilesUpdaterOptions.release });
+		const productionDependencies = this.$nodeModulesDependenciesBuilder.getProductionDependencies(projectData.projectDir)
+
+		_.each(productionDependencies, dependency => {
+			if (dependency.warning) {
+				this.$logger.warn(dependency.warning);
+			}
+		});
+
 		await this.$preparePlatformJSService.preparePlatform({
 			platform,
 			platformData,
@@ -332,8 +337,7 @@ export class PlatformService extends EventEmitter implements IPlatformService {
 			filesToSync,
 			filesToRemove,
 			env,
-			skipCopyAppResourcesFiles,
-			skipCopyTnsModules
+			productionDependencies
 		});
 
 		if (!nativePrepare || !nativePrepare.skipNativePrepare) {
@@ -347,7 +351,8 @@ export class PlatformService extends EventEmitter implements IPlatformService {
 				filesToSync,
 				filesToRemove,
 				projectFilesConfig,
-				env
+				env,
+				productionDependencies
 			});
 		}
 

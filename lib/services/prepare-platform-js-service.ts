@@ -36,12 +36,10 @@ export class PreparePlatformJSService extends PreparePlatformService implements 
 	public async preparePlatform(config: IPreparePlatformJSInfo): Promise<void> {
 		if (!config.changesInfo || config.changesInfo.appFilesChanged || config.changesInfo.changesRequirePrepare) {
 			await this.copyAppFiles(config);
-			if (!config.skipCopyAppResourcesFiles) {
-				this.copyAppResourcesFiles(config);
-			}
+			this.copyAppResourcesFiles(config);
 		}
 
-		if (!config.skipCopyAppResourcesFiles && !this.$fs.exists(path.join(config.platformData.appDestinationDirectoryPath, constants.APP_FOLDER_NAME, constants.APP_RESOURCES_FOLDER_NAME))) {
+		if (!this.$fs.exists(path.join(config.platformData.appDestinationDirectoryPath, constants.APP_FOLDER_NAME, constants.APP_RESOURCES_FOLDER_NAME))) {
 			this.copyAppResourcesFiles(config);
 		}
 
@@ -55,13 +53,11 @@ export class PreparePlatformJSService extends PreparePlatformService implements 
 		}
 
 		if (!config.changesInfo || config.changesInfo.modulesChanged) {
-			if (!config.skipCopyTnsModules) {
-				await this.copyTnsModules(config.platform, config.platformData, config.projectData, config.appFilesUpdaterOptions, config.projectFilesConfig);
-			}
+			await this.copyTnsModules(config);
 		}
 
-		if (!config.skipCopyTnsModules && !this.$fs.exists(path.join(config.platformData.appDestinationDirectoryPath, constants.APP_FOLDER_NAME, constants.TNS_MODULES_FOLDER_NAME, constants.TNS_CORE_MODULES_NAME))) {
-			await this.copyTnsModules(config.platform, config.platformData, config.projectData, config.appFilesUpdaterOptions, config.projectFilesConfig);
+		if (!this.$fs.exists(path.join(config.platformData.appDestinationDirectoryPath, constants.APP_FOLDER_NAME, constants.TNS_MODULES_FOLDER_NAME, constants.TNS_CORE_MODULES_NAME))) {
+			await this.copyTnsModules(config);
 		}
 	}
 
@@ -93,8 +89,8 @@ export class PreparePlatformJSService extends PreparePlatformService implements 
 		return null;
 	}
 
-	private async copyTnsModules(platform: string, platformData: IPlatformData, projectData: IProjectData, appFilesUpdaterOptions: IAppFilesUpdaterOptions, projectFilesConfig?: IProjectFilesConfig): Promise<void> {
-		const appDestinationDirectoryPath = path.join(platformData.appDestinationDirectoryPath, constants.APP_FOLDER_NAME);
+	private async copyTnsModules(config: IPreparePlatformJSInfo): Promise<void> {
+		const appDestinationDirectoryPath = path.join(config.platformData.appDestinationDirectoryPath, constants.APP_FOLDER_NAME);
 		const lastModifiedTime = this.$fs.exists(appDestinationDirectoryPath) ? this.$fs.getFsStats(appDestinationDirectoryPath).mtime : null;
 
 		try {
@@ -103,13 +99,14 @@ export class PreparePlatformJSService extends PreparePlatformService implements 
 			await this.$nodeModulesBuilder.prepareJSNodeModules({
 				nodeModulesData: {
 					absoluteOutputPath,
-					platform,
+					platform: config.platform,
 					lastModifiedTime,
-					projectData,
-					appFilesUpdaterOptions,
-					projectFilesConfig
+					projectData: config.projectData,
+					appFilesUpdaterOptions: config.appFilesUpdaterOptions,
+					projectFilesConfig: config.projectFilesConfig,
+					productionDependencies: config.productionDependencies
 				},
-				release: appFilesUpdaterOptions.release,
+				release: config.appFilesUpdaterOptions.release,
 				copyNodeModules: true
 			});
 		} catch (error) {
