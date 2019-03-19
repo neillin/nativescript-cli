@@ -15,7 +15,7 @@
 			"program": "${workspaceRoot}/lib/nativescript-cli.js",
 
 			// example commands
-			"args": [ "prepare", "ios", "--path", "/Users/kddimitrov/apps/secondTry"]
+			"args": [ "run", "ios", "--path", "/Users/kddimitrov/apps/secondTry"]//, "--log", "trace"]
 			// "args": [ "test", "android", "--justlaunch"]
 			// "args": [ "platform", "add", "android@1.3.0", "--path", "cliapp"]
 			// "args": [ "platform", "remove", "android", "--path", "cliapp"]

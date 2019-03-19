@@ -22,7 +22,6 @@ import { DeviceDiscovery } from "../lib/common/mobile/mobile-core/device-discove
 import { IOSDeviceDiscovery } from "../lib/common/mobile/mobile-core/ios-device-discovery";
 import { AndroidDeviceDiscovery } from "../lib/common/mobile/mobile-core/android-device-discovery";
 import { PluginVariablesService } from "../lib/services/plugin-variables-service";
-import { PluginsService } from "../lib/services/plugins-service";
 import { PluginVariablesHelper } from "../lib/common/plugin-variables-helper";
 import { Utils } from "../lib/common/utils";
 import { CocoaPodsService } from "../lib/services/cocoapods-service";
@@ -75,7 +74,8 @@ function createTestInjector(projectPath: string, projectName: string, xcode?: IX
 		projectIdentifiers: { android: "", ios: "" },
 		projectDir: "",
 		appDirectoryPath: "",
-		appResourcesDirectoryPath: ""
+		appResourcesDirectoryPath: "",
+		getAppResourcesDirectoryPath: ()=>""
 	});
 	projectData.projectDir = temp.mkdirSync("projectDir");
 	projectData.appDirectoryPath = path.join(projectData.projectDir, "app");
@@ -113,7 +113,9 @@ function createTestInjector(projectPath: string, projectName: string, xcode?: IX
 	testInjector.register("iosDeviceOperations", {});
 	testInjector.register("pluginVariablesService", PluginVariablesService);
 	testInjector.register("pluginVariablesHelper", PluginVariablesHelper);
-	testInjector.register("pluginsService", PluginsService);
+	testInjector.register("pluginsService", {
+		getAllInstalledPlugins: (): string[] => []
+	});
 	testInjector.register("androidProcessService", {});
 	testInjector.register("processService", {});
 	testInjector.register("sysInfo", {});
@@ -123,6 +125,8 @@ function createTestInjector(projectPath: string, projectName: string, xcode?: IX
 			constructor() { /* */ }
 			parseSync() { /* */ }
 			pbxGroupByName() { /* */ }
+			removeTargetsByProductType() { /* */ }
+			writeSync() { /* */ }
 		}
 	});
 	testInjector.register("userSettingsService", {
@@ -673,7 +677,7 @@ describe("Source code support", () => {
 			return pbxProj;
 		};
 
-		it("adds source files as resources", async () => {
+		it("adds source files in Sources build phase", async () => {
 			const sourceFileNames = [
 				"src/Header.h", "src/ObjC.m",
 				"src/nested/Header.hpp", "src/nested/Source.cpp", "src/nested/ObjCpp.mm",
@@ -698,16 +702,14 @@ describe("Source code support", () => {
 			sourceFileNames.map(file => path.basename(file)).forEach(basename => {
 				const ext = path.extname(basename);
 				const shouldBeAdded = ext !== ".donotadd";
-				if (shouldBeAdded) {
-					assert.notEqual(pbxFileReferenceValues.indexOf(basename), -1, `${basename} not added to PBXFileRefereces`);
+				assert.notEqual(pbxFileReferenceValues.indexOf(basename), -1, `${basename} not added to PBXFileRefereces`);
 
-					if (shouldBeAdded && !path.extname(basename).startsWith(".h")) {
-						const buildPhaseFile = buildPhaseFiles.find((fileObject: any) => fileObject.comment.startsWith(basename));
-						assert.isDefined(buildPhaseFile, `${basename} not added to PBXSourcesBuildPhase`);
-						assert.include(buildPhaseFile.comment, "in Sources", `${basename} must be added to Sources group`);
-					}
+				const buildPhaseFile = buildPhaseFiles.find((fileObject: any) => fileObject.comment.startsWith(basename));
+				if (shouldBeAdded && !path.extname(basename).startsWith(".h")) {
+					assert.isDefined(buildPhaseFile, `${basename} not added to PBXSourcesBuildPhase`);
+					assert.include(buildPhaseFile.comment, "in Sources", `${basename} must be added to Sources group`);
 				} else {
-					assert.equal(pbxFileReferenceValues.indexOf(basename), -1, `${basename} was added to PBXFileRefereces, but it shouldn't have been`);
+					assert.isUndefined(buildPhaseFile, `${basename} is added to PBXSourcesBuildPhase, but it shouldn't have been.`);
 				}
 			});
 		});
@@ -729,16 +731,14 @@ describe("Source code support", () => {
 			sourceFileNames.map(file => path.basename(file)).forEach(basename => {
 				const ext = path.extname(basename);
 				const shouldBeAdded = ext !== ".donotadd";
-				if (shouldBeAdded) {
-					assert.notEqual(pbxFileReferenceValues.indexOf(basename), -1, `${basename} not added to PBXFileRefereces`);
+				assert.notEqual(pbxFileReferenceValues.indexOf(basename), -1, `${basename} not added to PBXFileRefereces`);
 
-					if (shouldBeAdded && !path.extname(basename).startsWith(".h")) {
-						const buildPhaseFile = buildPhaseFiles.find((fileObject: any) => fileObject.comment.startsWith(basename));
-						assert.isDefined(buildPhaseFile, `${basename} not added to PBXSourcesBuildPhase`);
-						assert.include(buildPhaseFile.comment, "in Sources", `${basename} must be added to Sources group`);
-					}
+				const buildPhaseFile = buildPhaseFiles.find((fileObject: any) => fileObject.comment.startsWith(basename));
+				if (shouldBeAdded && !path.extname(basename).startsWith(".h")) {
+					assert.isDefined(buildPhaseFile, `${basename} not added to PBXSourcesBuildPhase`);
+					assert.include(buildPhaseFile.comment, "in Sources", `${basename} must be added to Sources group`);
 				} else {
-					assert.equal(pbxFileReferenceValues.indexOf(basename), -1, `${basename} was added to PBXFileRefereces, but it shouldn't have been`);
+					assert.isUndefined(buildPhaseFile, `${basename} was added to PBXSourcesBuildPhase, but it shouldn't have been`);
 				}
 			});
 		});
@@ -1035,7 +1035,9 @@ describe("iOS Project Service Signing", () => {
 						},
 						setManualSigningStyle(targetName: string, manualSigning: any) {
 							stack.push({ targetName, manualSigning });
-						}
+						},
+						setManualSigningStyleByTargetProductType: () => ({}),
+						setManualSigningStyleByTargetKey: () => ({})
 					};
 				};
 				await iOSProjectService.prepareProject(projectData, { sdk: undefined, provision: "NativeScriptDev", teamId: undefined });
@@ -1054,7 +1056,9 @@ describe("iOS Project Service Signing", () => {
 						},
 						setManualSigningStyle(targetName: string, manualSigning: any) {
 							stack.push({ targetName, manualSigning });
-						}
+						},
+						setManualSigningStyleByTargetProductType: () => ({}),
+						setManualSigningStyleByTargetKey: () => ({})
 					};
 				};
 				await iOSProjectService.prepareProject(projectData, { sdk: undefined, provision: "NativeScriptDist", teamId: undefined });
@@ -1073,7 +1077,9 @@ describe("iOS Project Service Signing", () => {
 						},
 						setManualSigningStyle(targetName: string, manualSigning: any) {
 							stack.push({ targetName, manualSigning });
-						}
+						},
+						setManualSigningStyleByTargetProductType: () => ({}),
+						setManualSigningStyleByTargetKey: () => ({})
 					};
 				};
 				await iOSProjectService.prepareProject(projectData, { sdk: undefined, provision: "NativeScriptAdHoc", teamId: undefined });
@@ -1262,6 +1268,8 @@ describe("buildProject", () => {
 			open: () => ({
 				getSigning: () => ({}),
 				setAutomaticSigningStyle: () => ({}),
+				setAutomaticSigningStyleByTargetProductType: () => ({}),
+				setAutomaticSigningStyleByTargetKey: () => ({}),
 				save: () => ({})
 			})
 		};
